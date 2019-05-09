@@ -29,6 +29,7 @@ namespace SketchToAI
         public void Dispose()
         {
             _queue.CompletePut();
+            _hostTask?.Wait();
         }
 
         public CliServerHost Start()
@@ -64,7 +65,8 @@ namespace SketchToAI
                 finally {
                     IsRestarting = false;
                 }
-            } while(AutoRestartDelay != TimeSpan.Zero);
+                CancellationToken.ThrowIfCancellationRequested();
+            } while(AutoRestartDelay != TimeSpan.Zero && !_queue.IsPutCompleted);
         }
 
         private async Task RunOnce()
@@ -82,30 +84,35 @@ namespace SketchToAI
             using var process = new Process {StartInfo = processStartInfo};
             if (!process.Start())
                 return;
-            var inputWriter = process.StandardInput;
-            var outputReader = process.StandardOutput;
-            while (true) {
-                var (entry, isDequeued) = await _queue.PullAsync(CancellationToken).ConfigureAwait(false);
-                if (!isDequeued)
-                    break;
-                var query = entry.Query;
-                var response = entry.Response;
-                var queryBuffer = new ReadOnlyMemory<char>(query.ToArray());
-                try {
-                    await inputWriter.WriteLineAsync(queryBuffer, CancellationToken).ConfigureAwait(false);
-                    // ReadLineAsync doesn't support cancellation, so
-                    // we're trying to take care of that differently
-                    var readLineTask = outputReader.ReadLineAsync();
-                    await Task.WhenAny(readLineTask, CancellationToken.AsTask(false)).ConfigureAwait(false); 
-                    CancellationToken.ThrowIfCancellationRequested();
-                    response.SetResult(readLineTask.Result);
+            try {
+                var inputWriter = process.StandardInput;
+                var outputReader = process.StandardOutput;
+                while (true) {
+                    var (entry, isDequeued) = await _queue.PullAsync(CancellationToken).ConfigureAwait(false);
+                    if (!isDequeued)
+                        break;
+                    var query = entry.Query;
+                    var response = entry.Response;
+                    var queryBuffer = new ReadOnlyMemory<char>(query.ToArray());
+                    try {
+                        await inputWriter.WriteLineAsync(queryBuffer, CancellationToken).ConfigureAwait(false);
+                        // ReadLineAsync doesn't support cancellation, so
+                        // we're trying to take care of that differently
+                        var readLineTask = outputReader.ReadLineAsync();
+                        await Task.WhenAny(readLineTask, CancellationToken.AsTask(false)).ConfigureAwait(false); 
+                        CancellationToken.ThrowIfCancellationRequested();
+                        response.SetResult(readLineTask.Result);
+                    }
+                    catch (Exception e) {
+                        if (e is TaskCanceledException)
+                            response.SetCanceled();
+                        else
+                            response.SetException(e);
+                    }
                 }
-                catch (Exception e) {
-                    if (e is TaskCanceledException)
-                        response.SetCanceled();
-                    else
-                        response.SetException(e);
-                }
+            }
+            finally {
+                process.Kill();
             }
         }
     }
