@@ -74,7 +74,7 @@ namespace SketchToAI
             void Help()
             {
                 Console.WriteLine("Usage:");
-                Console.WriteLine("  sketchToAI [--canvasSize M] [--outputSize N] analyzerToUse.exe [analyzer arguments]");
+                Console.WriteLine("  sketchToAI [--canvasSize N] [--outputSize N] [--penSize N] [--eraserSize N] analyzerToUse.exe [analyzer arguments]");
                 Console.WriteLine();
                 Dispatcher.Invoke(Close);
             }
@@ -84,7 +84,6 @@ namespace SketchToAI
             CheckSwitch("os", "outputSize", () => OutputSize = int.Parse(args[1]));
             CheckSwitch("ps", "penSize",    () => PenSize =    int.Parse(args[1]));
             CheckSwitch("es", "EraserSize", () => EraserSize = int.Parse(args[1]));
-
             
             try {
                 var analyzerCommand = args[0];
@@ -161,7 +160,16 @@ namespace SketchToAI
 
             while (true) {
                 var query = string.Join(" ", output.Select(i => (255-i).ToString()));
-                var response = await _analyzer.Query(query);
+                string response;
+                try {
+                    if (_analyzer == null || !_analyzer.IsRunning || _analyzer.IsRestarting)
+                        response = "Analyzer isn't ready.";
+                    else
+                        response = await _analyzer.Query(query);
+                }
+                catch (Exception e) {
+                    response = $"Error: {e.Message}";
+                }
                 Dispatcher.Invoke(() => {
                     AnalyzerResponse.Text = response;
                 });

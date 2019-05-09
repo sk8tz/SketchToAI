@@ -17,7 +17,8 @@ namespace SketchToAI
         public string WorkingDirectory { get; set; } = null;
         public TimeSpan AutoRestartDelay { get; set; } = TimeSpan.FromSeconds(1);
         public CancellationToken CancellationToken { get; set; }
-        public bool IsRunning => _hostTask?.IsCompleted ?? false;
+        public bool IsRunning => _hostTask != null && !_hostTask.IsCompleted;
+        public bool IsRestarting { get; private set; } 
 
         public CliServerHost(string command, string arguments = "")
         {
@@ -56,7 +57,13 @@ namespace SketchToAI
                 catch (Exception e) {
                     Console.Error.WriteLine($"CLI Server failed: {e.Message}");
                 }
-                await Task.Delay(AutoRestartDelay, CancellationToken).ConfigureAwait(false);
+                try {
+                    IsRestarting = true;
+                    await Task.Delay(AutoRestartDelay, CancellationToken).ConfigureAwait(false);
+                }
+                finally {
+                    IsRestarting = false;
+                }
             } while(AutoRestartDelay != TimeSpan.Zero);
         }
 
