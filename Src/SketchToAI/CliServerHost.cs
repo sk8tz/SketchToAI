@@ -69,7 +69,8 @@ namespace SketchToAI
                 WorkingDirectory = WorkingDirectory,
                 RedirectStandardError = true,
                 RedirectStandardInput = true,
-                RedirectStandardOutput = true
+                RedirectStandardOutput = true,
+                CreateNoWindow = true,
             };
             using var process = new Process {StartInfo = processStartInfo};
             if (!process.Start())

@@ -14,8 +14,4 @@
     <PackageReference Include="SixLabors.Shapes" Version="1.0.0-beta0008" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\TestAnalyzer\TestAnalyzer.csproj" />
-  </ItemGroup>
-  
 </Project>
