@@ -9,7 +9,7 @@ namespace TestAnalyzer
     {
         static void Main(string[] args)
         {
-            var tail = string.Join(" ", args.Skip(1));
+            var tail = string.Join(" ", args);
             while (true) {
                 var data = ReadLine().Split().Select(s => double.Parse(s) / 255).ToArray();
                 Thread.Sleep(100);
