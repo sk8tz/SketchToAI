@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Enums.NET" Version="2.3.2" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0006" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.7" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta0006" />
     <PackageReference Include="SixLabors.Shapes" Version="1.0.0-beta0008" />
   </ItemGroup>
